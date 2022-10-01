@@ -8,6 +8,15 @@ const { response } = require('express');
 router.use(bodyParser.urlencoded({ extended: true }));    // 2
 
 
+router.get('/user', (req,res)=>{
+    const query = req.query
+    const id = query.id;
+
+    connection.query("SELECT * FROM user WHERE id=?", [id], (err, rows)=>{
+        res.status(200).send(rows[0])
+    })
+})
+
 // 로그인
 router.get('/user/login', (req, res)=>{
     const query = req.query;
@@ -103,5 +112,33 @@ router.get('/my/room', (req,res)=>{
     })
 });
 
+router.put('/room/create', (req, res)=>{
+    const query = req.query;
+    const from_id = query.from_id;
+    const to_id = query.to_id;
+    const subject = query.subject;
+    const time = query.time;
+
+    // 채팅방이 존재하는지 확인
+    connection.query("SELECT * FROM chat_room WHERE (from_id=? and to_id=?) or (from_id=? and to_id=?)", [from_id, to_id, to_id, from_id], (err, rows)=>{
+        if(rows.length > 0){
+            res.send(false);
+        }else{ // 없으면 생성
+            connection.query("INSERT INTO chat_room values(0, ?, ?, ?, ?)",[from_id, to_id, subject, time], (insertErr, data)=>{
+                res.send(true);
+            })
+        }
+    })
+})
+
+router.get('/room/info', (req,res)=>{
+    const query = req.query;
+    const from_id = query.from_id;
+    const to_id = query.to_id;
+
+    connection.query("SELECT * FROM chat_room WHERE (from_id=? and to_id=?) or (from_id=? and to_id=?)", [from_id, to_id, to_id, from_id], (err, rows)=>{
+        res.send(rows[0])
+    })
+})
 
 module.exports = router;
