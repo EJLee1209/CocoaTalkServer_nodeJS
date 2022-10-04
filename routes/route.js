@@ -7,6 +7,49 @@ const bodyParser = require('body-parser');    // 1
 const { response } = require('express');
 router.use(bodyParser.urlencoded({ extended: true }));    // 2
 
+var admin = require("firebase-admin");
+let serviceAccount = require('../fcmtest-f0411-firebase-adminsdk-1wfuj-a3bd84bc10.json')
+
+admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
+
+router.post('/push', (req,res)=>{
+    const query = req.query;
+    const token = query.token;
+    const from = query.from;
+    const text = query.text;
+
+    let message = {
+        notification: {
+            title: from,
+            body: text,
+          },
+        token: token,
+    }
+    
+    admin
+    .messaging()
+    .send(message)
+    .then(function (response) {
+      console.log('Successfully sent message: : ', response)
+      res.send(true)
+    })
+    .catch(function (err) {
+      console.log('Error Sending message!!! : ', err)
+      res.send(false)
+    })
+})
+
+router.post('/register/token', (req, res)=>{
+    const query = req.query;
+    const uid = query.uid;
+    const token = query.token;
+
+    connection.query("UPDATE user SET token=? WHERE uid=?",[token, uid])
+    res.send();
+})
+
 
 router.get('/user', (req,res)=>{
     const query = req.query
@@ -138,6 +181,17 @@ router.get('/room/info', (req,res)=>{
 
     connection.query("SELECT * FROM chat_room WHERE (from_id=? and to_id=?) or (from_id=? and to_id=?)", [from_id, to_id, to_id, from_id], (err, rows)=>{
         res.send(rows[0])
+    })
+})
+
+router.post('/room/update', (req, res)=>{
+    const query = req.query;
+    const room_id = query.room_id;
+    const subject = query.subject;
+    const time = query.time;
+
+    connection.query("UPDATE chat_room SET subject = ?, time =? WHERE id =?;",[subject, time, room_id], (err, rows)=>{
+        res.send();
     })
 })
 
