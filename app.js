@@ -31,7 +31,7 @@ io.on('connection', (socket) => {
       console.log("Message " + msg['text']);
       console.log("보내는 아이디 : ",msg['sender_id']);
       console.log("방 번호 : ", msg['roomNumber'])
-      // 그룹 전체에게 메시지 전송
+      // roomNumber 그룹 전체에게 메시지 전송
       io.to(msg['roomNumber']).emit('chat message', msg);
     });
     
