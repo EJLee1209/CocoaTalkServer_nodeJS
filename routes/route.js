@@ -195,4 +195,35 @@ router.post('/room/update', (req, res)=>{
     })
 })
 
+router.get('/get/message', (req,res)=>{
+    const room_id = req.query.room_id;
+
+    connection.query("SELECT * FROM message WHERE room_id=?",[room_id],(err,rows)=>{
+        if(err) throw err;
+        if(rows.length > 0){
+            res.send(rows);
+        }else{
+            var arr = [];
+            res.send(arr);
+        }
+    })
+})
+
+router.put('/save/message', (req,res)=>{
+    const body = req.body;
+    const room_id = body.room_id;
+    const sender_uid = body.sender_uid;
+    const receiver_uid = body.receiver_uid;
+    const text = body.text;
+    const time = body.time;
+    const flag = body.flag;
+
+    connection.query("INSERT INTO message VALUES(0,?,?,?,?,?,?)",[room_id,sender_uid, receiver_uid, text, time, flag], (err, rows)=>{
+        if(err) throw err;
+        else{
+            res.send(true);
+        }
+    })
+})
+
 module.exports = router;
