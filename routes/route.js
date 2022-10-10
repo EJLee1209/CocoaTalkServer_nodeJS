@@ -5,10 +5,16 @@ var express = require('express');
 var router = express.Router();
 const bodyParser = require('body-parser');    // 1
 const { response } = require('express');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
+
+router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));    // 2
 
 var admin = require("firebase-admin");
-let serviceAccount = require('../fcmtest-f0411-firebase-adminsdk-1wfuj-a3bd84bc10.json')
+let serviceAccount = require('../fcmtest-f0411-firebase-adminsdk-1wfuj-a3bd84bc10.json');
+const { stringify } = require('querystring');
 
 admin.initializeApp({
     credential: admin.credential.cert(serviceAccount)
@@ -104,18 +110,6 @@ router.put('/user/register', (req,res)=>{
     })
 })
 
-//프로필 업데이트 
-router.post('/user/update', (req,res)=>{
-    const query = req.query;
-    const uid = query.uid;
-    const name = query.name;
-    const image = query.image;
-    const state_msg = query.state_msg;
-
-    connection.query("UPDATE user SET name=?, image=?, state_msg=? WHERE uid=?",[name, image, state_msg,uid],(err, rows)=>{
-        res.send();
-    })
-})
 
 //친구목록 조회
 router.get('/friend/all', (req,res)=>{
@@ -225,5 +219,74 @@ router.put('/save/message', (req,res)=>{
         }
     })
 })
+
+const storage = multer.diskStorage({
+    destination(req, file, done) { // 이미지를 저장할 경로 지정
+      done(null, 'profileImages/');
+    },
+  
+
+    filename(req, file, done) {
+      const ext = path.extname(file.originalname);
+      const fileName = `${path.basename(
+        file.originalname,
+        ext
+      )}_${Date.now()}${ext}`;
+      done(null, fileName);
+    },
+  });
+  const limits = { fileSize: 5 * 1024 * 1024 };
+  
+  const multerConfig = {
+    storage,
+    limits,
+  };
+  
+  const upload = multer(multerConfig);
+
+
+//프로필 업데이트 (이름, 상메만)
+router.post('/user/update', (req,res)=>{
+    const query = req.query;
+    const uid = query.uid;
+    const name = query.name;
+    const state_msg = query.state_msg;
+
+    connection.query("UPDATE user SET name=?, state_msg=? WHERE uid=?",[name, state_msg, uid],(err, rows)=>{
+        res.send();
+    })
+})
+
+
+// 프로필이미지 업데이트
+router.post("/save/image", upload.single('profile'), (req, res)=>{
+    const body = req.body
+    
+    console.log(req.file);
+    res.send('upload!');
+
+    connection.query("UPDATE user SET image=? WHERE uid=?",[req.file.filename, body.uid],(err, rows)=>{
+        res.send();
+    })
+    
+})
+
+router.get("/get/profileImage", (req, res) => {
+    const imageName = req.query.imageName
+
+    fs.exists(__dirname + "/../profileImages/"+imageName,  function(exists){
+        if(exists){
+          console.log("exixts! : ",exists);
+          res.sendFile(path.join(__dirname, "../profileImages/"+imageName));
+        } else {
+          console.log("No exixts! : ",exists);
+          res.send(null)
+        }
+       });
+
+    
+  });
+
+
 
 module.exports = router;
